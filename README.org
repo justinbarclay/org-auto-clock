@@ -1,0 +1,23 @@
+* 🤖 org-auto-clock ⌚
+#+begin_quote
+Have Emacs automatically prompt you to clock into your tasks
+#+end_quote
+
+
+[[https://github.com/user-attachments/assets/719af6be-7bc0-40d3-8c61-e05df22ef7fa]]
+
+** Installation
+#+begin_src elisp
+  (use-package org-auto-clock
+    :after org
+    :commands org-auto-clock-mode
+    :straight (:type git :host github :repo "justinbarclay/org-auto-clock")
+    :init
+    (org-auto-clock-mode)
+    :custom
+    (org-auto-clock-projects '("org-clock-auto" "some-other-project"))
+    ;; Defaults to using project.el to determine project name
+    (org-auto-clock-project-name-function #'projectile-project-name))
+#+end_src
+** How does it work?
+=org-auto-clock= will clock you in to your tasks defined within your =org-agenda-files= if it detects that the current project name is defined with the =alist= =org-auto-clock-projects=. It defaults to determining project name by using the facilities provided by =project.el=, but can be changed to use =projectile's= =projectile-project-name=. It can also be paired with a custom function that will return a string that can be compared with the values in =org-auto-clock-projects=.
