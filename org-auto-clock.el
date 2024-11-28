@@ -55,8 +55,6 @@
   :type '(list string)
   :group 'org-auto-clock)
 
-(defvar org-auto-clock-selecting nil "Whether `org-auto-clock-select-task' is running.")
-
 (defun org-auto-clock--always ()
   "Always return t, regardless of the buffer's project."
   't)
@@ -87,6 +85,13 @@ against the names in `org-auto-clock-project-names'.
                 (function-item org-auto-clock--resolve-project)
                 (function :tag "Function"))
   :group 'org-auto-clock)
+
+(defvar org-auto-clock-selecting nil "Whether `org-auto-clock-select-task' is running.")
+
+(defvar org-auto-clock--ignored-buffers '()
+  "A list of buffers that org-auto-clock won't run in.
+
+This list is temporary and will clear after the next successful clock-in event.")
 
 (defun org-auto-clock--extract-headings (agenda &optional match)
   "Extract headings from an `AGENDA' file.
@@ -143,9 +148,16 @@ node `(org)Matching tags and properties' for more information."
   "Clock into a task when opening a buffer or file."
   (when (and (not (or (minibufferp)
                       (org-clocking-p)
-                      org-auto-clock-selecting))
+                      org-auto-clock-selecting
+                      (memq (current-buffer) org-auto-clock--ignored-buffers)))
              (org-auto-clock--can-run-p))
-    (org-auto-clock-select-task org-auto-clock-match-query)))
+    (condition-case _
+        (org-auto-clock-select-task org-auto-clock-match-query)
+      (:success
+       (setq org-auto-clock--ignored-buffers '()))
+      (quit (progn
+              (message "org-auto-clock temporarily ignoring %s" (current-buffer))
+              (add-to-list 'org-auto-clock--ignored-buffers (current-buffer)))))))
 
 (define-minor-mode org-auto-clock-mode
   "Automatically clock into a task when opening any buffer or file."
@@ -154,11 +166,14 @@ node `(org)Matching tags and properties' for more information."
   :global t
   (if org-auto-clock-mode
       (progn
-        (add-hook 'window-buffer-change-functions #'org-auto-clock--clock-in)
-        (unless (memq 'org-auto-clock-clockout org-clock-in-hook)
-          (add-hook 'org-clock-in-hook #'org-clock-auto-clockout t)))
+        (add-hook 'window-buffer-change-functions 'org-auto-clock--clock-in)
+        (if org-clock-idle-time
+            (org-clock-auto-clockout-insinuate)
+          (lwarn '(org-auto-clock)
+                 :warning
+                 "`org-clock-idle-time' not set. `org-auto-clock' will not clock out automatically.")))
     (remove-hook 'org-clock-in-hook #'org-clock-auto-clockout)
     (remove-hook 'window-buffer-change-functions #'org-auto-clock--clock-in)))
-(provide 'org-auto-clock)
 
+(provide 'org-auto-clock)
 ;;; org-auto-clock.el ends here
