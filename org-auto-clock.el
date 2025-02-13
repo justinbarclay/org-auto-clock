@@ -2,8 +2,8 @@
 
 ;; Copyright (C) 2024  Justin Barclay
 
-;; Author: Justin Barclayx <github@justincbarclay.ca>
-;; Version: 0.0.0-alpha
+;; Author: Justin Barclay <github@justincbarclay.ca>
+;; Version: 0.1.0
 ;; Package-Requires: ((emacs "28.1") (org "9.7"))
 ;; Keywords: convenience, calendar
 
@@ -141,8 +141,10 @@ node `(org)Matching tags and properties' for more information."
 (defun org-auto-clock--can-run-p ()
   "Return non-nil if `org-auto-clock' can run in current buffer."
   (or org-auto-clock-always-clock-in
-      (member (funcall org-auto-clock-project-name-function)
-              org-auto-clock-projects)))
+      (and buffer-file-name
+           (file-exists-p buffer-file-name)
+           (member (funcall org-auto-clock-project-name-function)
+                   org-auto-clock-projects))))
 
 (defun org-auto-clock--clock-in (_)
   "Clock into a task when opening a buffer or file."
@@ -159,6 +161,7 @@ node `(org)Matching tags and properties' for more information."
               (message "org-auto-clock temporarily ignoring %s" (current-buffer))
               (add-to-list 'org-auto-clock--ignored-buffers (current-buffer)))))))
 
+;;;###autoload
 (define-minor-mode org-auto-clock-mode
   "Automatically clock into a task when opening any buffer or file."
   :require 'org
